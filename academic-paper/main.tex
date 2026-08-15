@@ -37,49 +37,91 @@ Our main contributions are:
 \end{itemize}
 
 \section{Problem Formulation}
-Consider a finite horizon $T$. At each stage $t$, the aggregator chooses a price $p_t$ from a finite set $\mathcal{P}$, and each user $i$ chooses a demand level from a finite set $\mathcal{D}$.
+Consider a finite horizon $T$. At each stage $t \in \{1,\dots,T\}$, the aggregator chooses a price $p_t$ from a finite set $\mathcal{P}$, and each user $i \in \{1,\dots,N\}$ chooses a demand level from a finite set $\mathcal{D} = \{d_1, \dots, d_K\}$.
 
+\subsection{User Utility}
 User $i$ receives utility
 \begin{equation}
-u_i(d, p) = v_i(d) - p d,
+    u_i(d, p) = v_i(d) - p d,
 \end{equation}
-where $v_i(d)$ is the value of consuming level $d$.
+where $v_i(d)$ is the value of consuming level $d$. We assume that $v_i$ is increasing and concave in $d$.
 
-Users update their mixed strategies with the Hedge algorithm:
+\subsection{Hedge Users}
+Users do not solve the stage game myopically. Instead, each user updates a multiplicative weight for every demand action. The weights evolve as
 \begin{equation}
-w_{i,a,t+1} = w_{i,a,t} \exp\bigl(\eta u_i(a, p_t)\bigr),
-\qquad
-x_{i,a,t} = \frac{w_{i,a,t}}{\sum_{b} w_{i,b,t}},
+    w_{i,a,t+1} = w_{i,a,t} \exp\bigl(\eta u_i(a, p_t)\bigr),
 \end{equation}
-where $\eta$ is the learning rate.
+where $\eta$ is the learning rate. The stage strategy is
+\begin{equation}
+    x_{i,a,t} = \frac{w_{i,a,t}}{\sum_{b \in \mathcal{D}} w_{i,b,t}}.
+\end{equation}
+The initial weights are $w_{i,a,1} = 1$.
 
+\subsection{Aggregator Objective}
 The aggregator's stage revenue is
 \begin{equation}
-R_t = p_t \sum_i \sum_a x_{i,a,t} d_a,
+    R_t = p_t \sum_{i=1}^{N} \sum_{a \in \mathcal{D}} x_{i,a,t} d_a,
 \end{equation}
-and the objective is to maximize $\sum_{t=1}^{T} R_t$.
+and its objective is to maximize the cumulative expected revenue
+\begin{equation}
+    \max_{p_1,\dots,p_T \in \mathcal{P}} \sum_{t=1}^{T} R_t.
+\end{equation}
+
+The aggregator knows $\eta$ and the users' utility functions, but users are not treated as rational Stackelberg followers.
 
 \section{Dynamics and Bellman Equation}
-The Hedge update induces a one-dimensional state $s_t$, with transition
+For a user with two demand levels, the weight ratio
 \begin{equation}
-s_{t+1} = s_t + \Delta(p_t).
+    \frac{w_{i,1,t}}{w_{i,2,t}} = \exp(\eta s_{i,t})
 \end{equation}
-The aggregator's problem can then be written as
+defines a scalar state $s_{i,t}$. The state evolves as
 \begin{equation}
-V_t(s) = \max_{p \in \mathcal{P}} \Bigl[ p D_t(p, s) + V_{t+1}(s + \Delta(p, s)) \Bigr],
-\qquad V_{T+1}(s) = 0.
+    s_{i,t+1} = s_{i,t} + \Delta_i(p_t),
+\qquad
+    \Delta_i(p) = u_i(d_1, p) - u_i(d_2, p).
+\end{equation}
+When users are homogeneous, the aggregate state is a single scalar $s_t$, and the expected demand is
+\begin{equation}
+    D_t(p, s) = N \left( \frac{d_1 e^{\eta s_t} + d_2}{e^{\eta s_t} + 1} \right).
 \end{equation}
 
-Direct dynamic programming has complexity $O(T |\mathcal{S}| |\mathcal{P}|)$, which motivates studying the periodicity of the optimal price sequence.
+The aggregator's problem is then a finite-horizon optimal control problem:
+\begin{equation}
+    V_t(s) = \max_{p \in \mathcal{P}} \Bigl[ p D_t(p, s) + V_{t+1}\bigl(s + \Delta(p)\bigr) \Bigr],
+\qquad
+    V_{T+1}(s) = 0.
+\end{equation}
 
-\section{Structural Properties}
-Our working hypothesis is that the optimal price sequence enters a periodic orbit after a short transient when the state steps are commensurable. We plan to prove a simplified version of this result and support the general conjecture with numerical experiments.
+Direct dynamic programming over the state grid has complexity $O(T |\mathcal{S}| |\mathcal{P}|)$, which grows with the horizon. This motivates the study of periodicity in the optimal price sequence.
+
+\section{Structural Properties and Algorithm}
+We aim to establish the following results:
+\begin{enumerate}
+    \item \textbf{Static pricing is not optimal.} A constant Stackelberg price exploits rational users, but against Hedge learners the aggregator can improve revenue by steering the user's learning dynamics.
+    \item \textbf{Eventual periodicity.} When all state steps $\Delta(p)$ are commensurable, i.e., $\Delta(p) \in \mathbb{Q}$ for every $p \in \mathcal{P}$, the optimal price sequence eventually enters a cycle.
+    \item \textbf{Efficient computation.} Once the transient and the period are identified, dynamic programming needs to be solved only over one period plus a short terminal segment.
+\end{enumerate}
+
+The planned algorithm is:
+\begin{enumerate}
+    \item compute the myopic path and the zero path;
+    \item detect the transient length and the period length;
+    \item solve the Bellman equation over one period;
+    \item repeat the periodic segment and solve the tail directly.
+\end{enumerate}
 
 \section{Numerical Experiments}
-TBD: compare periodic pricing, static Stackelberg pricing, myopic pricing, and constant pricing over synthetic demand scenarios. Report cumulative revenue, average revenue per period, transient length, and period length.
+We plan to compare four pricing rules:
+\begin{itemize}
+    \item static Stackelberg pricing;
+    \item myopic best-response pricing;
+    \item a periodic heuristic;
+    \item the dynamic programming solution over the periodic state graph.
+\end{itemize}
+For each rule we report cumulative revenue, average revenue per period, transient length, and period length. The simulation code is available in the companion repository.
 
 \section{Conclusion}
-TBD.
+This paper models dynamic electricity pricing against Hedge-learning users as a repeated game and reduces the aggregator's problem to a Bellman equation on a scalar state. The key insight is that optimal pricing can become periodic, which makes the problem computationally tractable and economically exploitable. Future work includes decaying learning rates, unknown learning algorithms, heterogeneous users, and storage-aware demand response.
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
