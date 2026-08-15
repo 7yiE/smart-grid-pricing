@@ -14,7 +14,7 @@ Research project: how should an electricity aggregator set dynamic prices when u
 
 ## Repository layout
 
-- `paper/` - paper outline and LaTeX draft
+- `academic-paper/` - paper outline and LaTeX draft
 - `code/` - Python simulation and experiments
 - `docs/` - notes and reading materials
 

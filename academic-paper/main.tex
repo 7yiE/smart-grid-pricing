@@ -1,0 +1,87 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{cite}
+
+\title{Periodic Optimal Dynamic Pricing against Online-Learning Users in Smart Grid Demand Response}
+
+\author{\IEEEauthorblockN{Author Name}
+\IEEEauthorblockA{School of \ldots\\
+University\\City, Country\\email@example.com}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This paper studies how an electricity aggregator should set dynamic prices when users update their demand strategies with the Hedge (multiplicative weights) learning algorithm. We model the repeated interaction as a finite-horizon dynamic game, formulate the aggregator's problem as an optimal control problem over a state transition graph, and show that the optimal price sequence eventually becomes periodic under commensurable payoff parameters. We compare periodic pricing with static Stackelberg pricing and myopic pricing through numerical experiments.
+\end{abstract}
+
+\begin{IEEEkeywords}
+demand response, dynamic pricing, Hedge algorithm, repeated games, Stackelberg game
+\end{IEEEkeywords}
+
+\section{Introduction}
+\IEEEPARstart{T}{he} increasing deployment of smart meters and automated demand management raises a fundamental question for electricity pricing: how should an aggregator price electricity when users are not fully rational, but instead adapt their behavior through online learning algorithms?
+
+The optimal pricing formula for rational users was recently derived in a Stackelberg game framework \cite{mu2024pricing}. In parallel, the optimal strategy against the Hedge algorithm was characterized for repeated zero-sum games \cite{guo2023optimal}. This paper connects these two lines: we study dynamic pricing when users are Hedge learners.
+
+Our main contributions are:
+\begin{itemize}
+    \item a repeated-game model of dynamic pricing against Hedge-learning users;
+    \item a state-transition formulation and Bellman equation for the aggregator;
+    \item structural evidence that optimal pricing becomes periodic;
+    \item a numerical comparison with static Stackelberg and myopic baselines.
+\end{itemize}
+
+\section{Problem Formulation}
+Consider a finite horizon $T$. At each stage $t$, the aggregator chooses a price $p_t$ from a finite set $\mathcal{P}$, and each user $i$ chooses a demand level from a finite set $\mathcal{D}$.
+
+User $i$ receives utility
+\begin{equation}
+u_i(d, p) = v_i(d) - p d,
+\end{equation}
+where $v_i(d)$ is the value of consuming level $d$.
+
+Users update their mixed strategies with the Hedge algorithm:
+\begin{equation}
+w_{i,a,t+1} = w_{i,a,t} \exp\bigl(\eta u_i(a, p_t)\bigr),
+\qquad
+x_{i,a,t} = \frac{w_{i,a,t}}{\sum_{b} w_{i,b,t}},
+\end{equation}
+where $\eta$ is the learning rate.
+
+The aggregator's stage revenue is
+\begin{equation}
+R_t = p_t \sum_i \sum_a x_{i,a,t} d_a,
+\end{equation}
+and the objective is to maximize $\sum_{t=1}^{T} R_t$.
+
+\section{Dynamics and Bellman Equation}
+The Hedge update induces a one-dimensional state $s_t$, with transition
+\begin{equation}
+s_{t+1} = s_t + \Delta(p_t).
+\end{equation}
+The aggregator's problem can then be written as
+\begin{equation}
+V_t(s) = \max_{p \in \mathcal{P}} \Bigl[ p D_t(p, s) + V_{t+1}(s + \Delta(p, s)) \Bigr],
+\qquad V_{T+1}(s) = 0.
+\end{equation}
+
+Direct dynamic programming has complexity $O(T |\mathcal{S}| |\mathcal{P}|)$, which motivates studying the periodicity of the optimal price sequence.
+
+\section{Structural Properties}
+Our working hypothesis is that the optimal price sequence enters a periodic orbit after a short transient when the state steps are commensurable. We plan to prove a simplified version of this result and support the general conjecture with numerical experiments.
+
+\section{Numerical Experiments}
+TBD: compare periodic pricing, static Stackelberg pricing, myopic pricing, and constant pricing over synthetic demand scenarios. Report cumulative revenue, average revenue per period, transient length, and period length.
+
+\section{Conclusion}
+TBD.
+
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+
+\end{document}
