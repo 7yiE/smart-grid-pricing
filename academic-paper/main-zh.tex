@@ -1,0 +1,187 @@
+\documentclass[UTF8]{ctexart}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\title{用户在线学习下智能电网动态定价的周期性最优策略}
+\author{作者姓名\\学校\\邮箱}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+智能电网需求响应中的动态电价研究通常假设用户完全理性，然而实际用户越来越多地通过智能设备和在线学习算法调整用电行为。本文研究聚合商在用户采用 Hedge 学习算法更新用电策略时，如何设计最优动态定价策略。我们将聚合商与用户的重复交互建模为有限时域动态博弈，把聚合商的最优定价问题转化为状态转移图上的有限时域最优控制问题，并建立相应的 Bellman 方程。我们提出如下工作假设：当状态步长满足可公度条件时，最优定价序列经过短暂暂态后最终进入周期。数值实验计划将周期定价与静态 Stackelberg 定价、myopic 定价进行对比，以验证周期定价在收益上的优势。
+\end{abstract}
+
+\noindent\textbf{关键词：}需求响应；动态定价；Hedge算法；重复博弈；Stackelberg博弈
+
+\section{引言}
+
+随着智能电表、自动需求管理和智能终端的普及，电力用户的行为越来越不像传统经济学假设下的完全理性主体，而更像是持续从经验中学习的在线学习算法。这给聚合商的动态定价提出了新的问题：当用户通过学习算法调整用电行为时，聚合商应如何设定电价才能最大化长期收益？
+
+在理性用户的假设下，最近的研究给出了基于 Stackelberg 博弈的最优定价公式~\cite{mu2024pricing}。与此同时，对抗学习算法的重复博弈理论刻画了面对 Hedge 算法时一方的最优策略~\cite{guo2023optimal}。本文尝试连接这两条研究主线：把动态定价问题建立在“用户是 Hedge 学习者”这一更现实的假设之上。
+
+本文的主要贡献如下：
+\begin{enumerate}
+    \item 建立了聚合商与 Hedge 学习用户之间的重复博弈定价模型；
+    \item 将聚合商的最优定价问题转化为状态转移图上的有限时域最优控制问题；
+    \item 提出最优定价序列最终周期化的工作假设，并设计周期加速求解算法；
+    \item 通过数值实验对比周期定价、静态 Stackelberg 定价和 myopic 定价的收益表现。
+\end{enumerate}
+
+本文其余部分安排如下：第 2 节给出问题建模；第 3 节建立状态动态与 Bellman 方程；第 4 节讨论结构性质与求解算法；第 5 节给出数值实验计划；第 6 节总结全文。
+
+\section{问题建模}
+
+\subsection{博弈设定}
+
+考虑有限时域 $T$。在每个阶段 $t \in \{1,\dots,T\}$，聚合商从有限价格集合 $\mathcal{P}$ 中选择电价 $p_t$，每个用户 $i \in \{1,\dots,N\}$ 从有限需求动作集合 $\mathcal{D} = \{d_1,\dots,d_K\}$ 中选择用电水平。用户不直接选择确定动作，而是通过混合策略 $x_{i,t}$ 描述其需求动作的概率分布。
+
+\subsection{用户效用}
+
+用户 $i$ 选择需求水平 $d$ 时的效用为
+\begin{equation}
+    u_i(d, p) = v_i(d) - p d,
+\end{equation}
+其中 $v_i(d)$ 表示用户消费水平 $d$ 带来的价值。我们假设 $v_i$ 关于 $d$ 单调递增且为凹函数，即用户对用电的边际价值递减。
+
+\subsection{Hedge 用户}
+
+用户并非每期求解当前最优反应，而是使用 Hedge 算法更新每个需求动作的权重。权重递推为
+\begin{equation}
+    w_{i,a,t+1} = w_{i,a,t} \exp\bigl(\eta u_i(a, p_t)\bigr),
+\end{equation}
+其中 $\eta$ 为学习率。用户在第 $t$ 期的混合策略为
+\begin{equation}
+    x_{i,a,t} = \frac{w_{i,a,t}}{\sum_{b \in \mathcal{D}} w_{i,b,t}}.
+\end{equation}
+初始权重取 $w_{i,a,1} = 1$。
+
+\subsection{聚合商目标}
+
+聚合商在第 $t$ 期的期望收益为
+\begin{equation}
+    R_t = p_t \sum_{i=1}^{N} \sum_{a \in \mathcal{D}} x_{i,a,t} d_a,
+\end{equation}
+其目标是在 $T$ 期内最大化累计期望收益
+\begin{equation}
+    \max_{p_1,\dots,p_T \in \mathcal{P}} \sum_{t=1}^{T} R_t.
+\end{equation}
+
+聚合商知道学习率 $\eta$ 和用户的效用函数，但用户不再被视为理性 Stackelberg 跟随者。
+
+\subsection{基本假设}
+
+本文采用以下假设：
+\begin{itemize}
+    \item 价格集合 $\mathcal{P}$ 与需求集合 $\mathcal{D}$ 均为有限集合；
+    \item 学习率 $\eta$ 已知；
+    \item 用户同质，状态可压缩为标量；
+    \item 状态步长满足可公度条件，即对任意 $p \in \mathcal{P}$，$\Delta(p) \in \mathbb{Q}$。
+\end{itemize}
+
+\section{状态动态与 Bellman 方程}
+
+考虑两个需求水平的情形。用户两个动作的权重之比可写成
+\begin{equation}
+    \frac{w_{i,1,t}}{w_{i,2,t}} = \exp(\eta s_{i,t}),
+\end{equation}
+从而定义标量状态 $s_{i,t}$。由权重更新公式可得状态递推
+\begin{equation}
+    s_{i,t+1} = s_{i,t} + \Delta_i(p_t),
+\qquad
+    \Delta_i(p) = u_i(d_1, p) - u_i(d_2, p).
+\end{equation}
+
+当用户同质时，聚合状态退化为单一标量 $s_t$，期望需求为
+\begin{equation}
+    D_t(p, s) = N \left( \frac{d_1 e^{\eta s_t} + d_2}{e^{\eta s_t} + 1} \right).
+\end{equation}
+
+聚合商的最优定价问题因此可写成有限时域最优控制问题：
+\begin{equation}
+    V_t(s) = \max_{p \in \mathcal{P}} \Bigl[ p D_t(p, s) + V_{t+1}\bigl(s + \Delta(p)\bigr) \Bigr],
+\qquad
+    V_{T+1}(s) = 0.
+\end{equation}
+
+直接在状态网格上求解该 Bellman 方程的复杂度为 $O(T |\mathcal{S}| |\mathcal{P}|)$，其中 $|\mathcal{S}|$ 为状态网格规模。当 $T$ 较大时，该复杂度限制了直接求解的可行性，因此有必要研究最优定价序列的结构性质。
+
+\section{结构性质与算法}
+
+\subsection{数值观察（待仿真验证）}
+
+我们计划通过动态规划仿真验证以下观察：在可公度的状态步长条件下，最优价格序列经过一段暂态后进入周期；周期长度由状态步长 $\Delta(p)$ 的参数决定，暂态长度通常远小于时间水平 $T$。
+
+\subsection{弱命题}
+
+作为可证明的第一步，我们考虑用户退化为 myopic best response 的极限情形。此时用户每期选择使当期效用最大的需求水平，聚合商的最优定价为常数价格，即不存在周期结构。该命题用于说明：周期结构来自用户的学习行为，而非价格优化本身。
+
+\subsection{工作假设}
+
+我们提出如下工作假设：当所有状态步长 $\Delta(p)$ 均为有理数时，最优价格序列最终周期化。该假设是本文后续理论工作的核心，也是周期加速算法的基础。
+
+\subsection{求解算法}
+
+基于周期结构，我们设计如下算法：
+\begin{enumerate}
+    \item 计算 myopic 路径与零路径；
+    \item 检测暂态长度与周期长度；
+    \item 仅在一个周期内求解 Bellman 方程；
+    \item 重复周期段，并对末端短段直接求解。
+\end{enumerate}
+
+该算法将 $O(T |\mathcal{S}| |\mathcal{P}|)$ 的复杂度压缩为周期长度与末端段规模之和，从而显著降低求解成本。
+
+\section{数值实验}
+
+本节当前为实验计划，待仿真完成后补充具体结果。
+
+\subsection{实验设置}
+
+计划采用的参数如下：
+\begin{itemize}
+    \item 时间水平 $T = 1000$；
+    \item 用户数 $N \in \{1, 10, 50\}$；
+    \item 学习率 $\eta \in \{0.01, 0.1, 0.5\}$；
+    \item 价格集合与需求集合按第 2 节设定。
+\end{itemize}
+
+\subsection{对比基线}
+
+计划对比四种定价规则：
+\begin{enumerate}
+    \item 静态 Stackelberg 定价；
+    \item myopic 最优反应定价；
+    \item 周期启发式定价；
+    \item 状态网格动态规划求解的最优定价。
+\end{enumerate}
+
+\subsection{评价指标}
+
+主要指标包括：最终累计收益、周期平均收益、相对静态定价的收益提升、暂态长度和周期长度。
+
+\subsection{图表计划}
+
+计划绘制四类图：价格轨迹图、累计收益对比图、不同学习率下的收益提升热力图、周期长度随参数变化的曲线。
+
+\section{结论}
+
+本文将智能电网动态定价问题建模为用户采用 Hedge 学习算法的重复博弈，并把聚合商的最优定价问题转化为状态转移图上的 Bellman 方程。本文的核心观点是：最优定价序列在可公度条件下最终进入周期，这使得定价问题在计算上可解，也为聚合商提供了相对静态定价更高的收益空间。未来工作包括衰减学习率、未知学习算法辨识、异质用户以及储能参与的需求响应。
+
+\begin{thebibliography}{9}
+\bibitem{guo2023}
+Guo X, Mu Y. The Optimal Strategy against Hedge Algorithm in Repeated Games[J]. arXiv:2312.09472, 2023.
+
+\bibitem{mu2024pricing}
+Mu Y, et al. An Optimal Pricing Formula for Smart Grid based on Stackelberg Game[J]. arXiv:2407.09948, 2024.
+
+\bibitem{deng2019}
+Deng Y, Schneider J, Sivan B. Strategizing against No-regret Learners[C]. Advances in Neural Information Processing Systems, 2019.
+\end{thebibliography}
+
+\end{document}
